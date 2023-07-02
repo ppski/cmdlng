@@ -1,7 +1,11 @@
 
 from pathlib import Path
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+DJANGO_SETTINGS_MODULE= 'backend.settings'
 
 # TODO: Change this to a secret key
 SECRET_KEY = "django-insecure-*m6ez7vpooni8n1ba*4uih$r$w1^q=x)od(@g0zhnw(dx40sm6"
