@@ -27,7 +27,7 @@ class Command(BaseCommand):
             else:
 
                 lookup = WordLookUp(lookup_word=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET)
-                new_entry = Word(lemma=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET)
+                new_entry = Word(lemma=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET, is_mwe=False, is_informal=False)
 
 
                 new_entry.save()
