@@ -1,40 +1,59 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from ...models import Word
 from ...lookup import WordLookUp, WordSearch
 
 
-LANG_SOURCE = "fr_fr"
-LANG_TARGET = "fr_fr"
-
-
 class Command(BaseCommand):
-    help = "TODO"
-
     def add_arguments(self, parser):
-        parser.add_argument("-a", "--add", nargs=1, type=str, help='Add a new word')
-        parser.add_argument("-s", "--search", nargs=1, type=str, help='Search for a word in db')
-
+        parser.add_argument("-a", "--add", nargs=1, type=str, help="Add a new word")
+        parser.add_argument("-sl", "--source_lang", type=str, help="Lang of input word")
+        parser.add_argument(
+            "-tl", "--target_lang", type=str, help="Lang of target word (translation)"
+        )
 
     def handle(self, *args, **options):
-        if options['add']:
+        # FIXME: Hardcoded for now
+        LANG_SOURCE = "fr_fr"
+        LANG_TARGET = "fr_fr"
 
-            search = WordSearch(lookup_word=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET)
-            db_search_result = search.search(lookup_word=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET)
+        if options["source_lang"]:
+            if isinstance(options["source_lang"], list):
+                LANG_SOURCE = options["source_lang"][0]
+            elif isinstance(options["source_lang"], str):
+                LANG_SOURCE = options["source_lang"]
+        if options["target_lang"]:
+            if isinstance(options["target_lang"], list):
+                LANG_TARGET = options["target_lang"][0]
+            elif isinstance(options["target_lang"], str):
+                LANG_TARGET = options["target_lang"]
+
+        if options["add"]:
+            lookup_word_str = options["add"][0].lower()
+            search = WordSearch(
+                lookup_word=lookup_word_str,
+                lang_source=LANG_SOURCE,
+                lang_target=LANG_TARGET,
+            )
+            db_search_result = search.search(
+                lookup_word=lookup_word_str,
+                lang_source=LANG_SOURCE,
+                lang_target=LANG_TARGET,
+            )
 
             if db_search_result:
-                # Display existing entries
-                pass
+                print("The word is already in the db: ", db_search_result)
             else:
 
-                lookup = WordLookUp(lookup_word=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET)
-                new_entry = Word(lemma=options['add'], lang_source=LANG_SOURCE, lang_target=LANG_TARGET, is_mwe=False, is_informal=False)
+                print(f"Searching for {lookup_word_str}...")
+                lookup = WordLookUp(
+                    lookup_word=lookup_word_str,
+                    lemma=search.lemma,
+                    lang_source=LANG_SOURCE,
+                    lang_target=LANG_TARGET,
+                )
+                text = lookup.look_up()
 
-
-                new_entry.save()
-                
-        
-        elif options['view']:
-            pass
-        elif options['search']:
-            pass
-
+                if not text:
+                    print("No results found.")
+                else:
+                    print(text)
