@@ -1,17 +1,23 @@
 import json
 import re
 import requests
+from typing import Union
 
 import spacy
 from bs4 import BeautifulSoup
 
+from django.conf import settings
 from .models import Word
-from .api_keys import LEXICALA_API_KEY
 
 
 # Look for word in db
 class WordSearch:
-    def __init__(self, lookup_word, lang_source="fr_fr", lang_target="fr_fr"):
+    def __init__(
+        self,
+        lookup_word: str,
+        lang_source: str = settings.LANG_SOURCE,
+        lang_target: str = settings.LANG_TARGET,
+    ):
         self.lookup_word = lookup_word
         self.lang_source = lang_source
         self.lang_target = lang_target
@@ -29,7 +35,7 @@ class WordSearch:
         doc = nlp(self.lookup_word)
         return doc[0].lemma_  # FIXME: MWEs
 
-    def search(self, lookup_word, lang_source="fr_fr", lang_target="fr_fr"):
+    def search(self, lookup_word: str) -> Union[Word, None]:
         # Search for a word in the db
 
         # TODO: logic for MWEs
@@ -56,27 +62,25 @@ class WordSearch:
 class WordLookUp:
     def __init__(
         self,
-        lookup_word,
-        lemma,
-        lang_source="fr_fr",
-        lang_target="fr_fr",
-        source="lexicala",
+        lookup_word: str,
+        lemma: str,
+        lang_source: str = "fr_fr",
+        lang_target: str = "fr_fr",
     ):
         self.lookup_word = lookup_word
         self.lang_source = lang_source
+        self.lang_prefix = lang_source[:2]  # fr_fr -> fr
         self.lang_target = lang_target
         self.lang_pair = f"{lang_source}-{lang_target}"
-        self.lang_prefix = lang_source[:2]  # fr_fr -> fr
         self.lemma = lemma
-        self.source = self.get_search_pref()
-        self.is_mwe = False  # FIXME
-        self.is_informal = False  # FIXME
 
-    def look_up(self):
+    def look_up(self) -> Union[str, None]:
         results = self.get_search_pref()
 
-        for result in results:
+        if not results:
+            return None
 
+        for result in results:
             empty_dict = {
                 "lang_source": self.lang_source,
                 "lang_target": self.lang_target,
@@ -90,14 +94,18 @@ class WordLookUp:
                 "source": result.get("source"),
                 "examples": result.get("examples"),
                 "pos_forms": result.get("pos_forms"),
-                "is_mwe": self.is_mwe,
-                "is_informal": self.is_informal,
+                "is_mwe": False,  # FIXME
+                "is_informal": False,  # FIXME
             }
             new_word = Word(**empty_dict)
-
             new_word.save()
 
-    def clean_lookup_pos(self, lookup_pos):
+        new_entry = Word.objects.filter(
+            lemma=self.lemma, lang_source=self.lang_source
+        ).first()
+        return f"Added {self.lemma}: {new_entry}"
+
+    def clean_lookup_pos(self, lookup_pos: str) -> str:
         if not lookup_pos:
             return None
         pos_dict = {
@@ -122,12 +130,11 @@ class WordLookUp:
 
         for pos in pos_dict:
             if lookup_pos in pos_dict[pos]:
-                return lookup_pos.upper()
+                return pos
         # If no match
         return "X"
 
-    def get_search_pref(self):
-        """
+    def get_search_pref(self) -> Union[dict, None]:
         preferred_results = None
 
         if self.lang_pair == "fr_fr-fr_fr":
@@ -138,23 +145,24 @@ class WordLookUp:
             preferred_results = self.look_up_lexicala()
         if not preferred_results:
             return self.look_up_wordreference()
-        else:
-        """
-        return self.look_up_wordreference()
+        return preferred_results
 
-    def look_up_wordreference(self):
-
-        url = "https://www.wordreference.com/fren/"
+    ##############################
+    ### WORDREFERENCE API      ###
+    ##############################
+    def look_up_wordreference(self) -> list:
+        url = f"https://www.wordreference.com/{self.lang_prefix}en/"
         link = f"{url}{self.lemma}"
+
         response = requests.get(link)
         soup = BeautifulSoup(response.content, "html.parser")
 
         # Entries
         find_def = soup.find("div", {"id": "articleWRD"})
         html_text = find_def.prettify()
-        html_text = re.sub(r"\s+", " ", html_text.replace("\n", " ").strip())
 
-        entries = re.split(r"id=\"\w{2}en\:\d+\">", html_text)
+        html_text = re.sub(r"\s+", " ", html_text.replace("\n", " ").strip())
+        entries = re.split(r"id=\"\w{4}\:\d+\">", html_text)
 
         definitions = []
         for entry in entries:
@@ -165,7 +173,9 @@ class WordLookUp:
             if related_lemma:
                 related_lemma = related_lemma.text.strip()
                 related_lemma = re.sub(
-                    r"(\s+(n|nm|nf|v|vtr|a),?)+$", "", related_lemma
+                    r"(\s+(n|nm|nf|v|vtr|vi|a|adv|adj|expr|agg|invar|\+),?)+$",
+                    "",
+                    related_lemma,
                 ).strip()
 
             # EN
@@ -173,10 +183,22 @@ class WordLookUp:
             if trans_en:
                 trans_en = trans_en.text.strip()
                 trans_en = trans_en.split("⇒")[0].strip()
-                trans_en = re.sub(r"\s+(n|v|vtr|a)$", "", trans_en)
+                trans_en = re.sub(
+                    r"(\s+(n|nm|nf|v|vtr|vi|a|adv|adj|expr|agg|invar|\+),?)+$",
+                    "",
+                    trans_en,
+                )
 
-                if trans_en.lower() in ["anglais", "français"]:
-                    break  # Ignore these entries
+                if trans_en.lower() in [
+                    "anglais",
+                    "français",
+                    "inglese",
+                    "italiano",
+                    "english",
+                    "french",
+                    "italian",
+                ]:
+                    continue  # Ignore these entries
 
             # POS
             pos_source = entry_soup.find("em", {"class": "POS2"})
@@ -185,13 +207,9 @@ class WordLookUp:
 
             # Examples
             examples = []
-            ex_source = (
-                entry_soup.find("td", {"class": f"{self.lang_prefix.capitalize()}Ex"})
-                or []
-            )
+            ex_source = entry_soup.find("td", {"class": "FrEx"}) or []
             for ex in ex_source:
                 if ex and ex.text.strip() != "":
-
                     examples.append({f"{self.lang_prefix}": ex.text.strip()})
 
             ex_en = entry_soup.find("td", {"class": "ToEx"}) or []
@@ -208,20 +226,22 @@ class WordLookUp:
                     {
                         "related_lemma": related_lemma,
                         "pos": pos_source,
-                        "definition": "TODO",
+                        # "definition": None,
                         "source": "http://wordreference.com",
                         "examples": examples,
                         "en_translation": trans_en,
                     }
                 )
-
         return definitions
 
-    def look_up_lexicala(self):
+    ##############################
+    ### LEXICALA API           ###
+    ##############################
+    def look_up_lexicala(self) -> Union[list, None]:
         response = requests.get(
             "https://lexicala1.p.rapidapi.com/search",
             headers={
-                "X-RapidAPI-Key": LEXICALA_API_KEY,
+                "X-RapidAPI-Key": settings.LEXICALA_API_KEY,
                 "X-RapidAPI-Host": "lexicala1.p.rapidapi.com",
             },
             params={"text": self.lookup_word, "language": self.lang_prefix},
@@ -239,14 +259,23 @@ class WordLookUp:
             if not response.json()["results"]:
                 return None
             for result in response.json()["results"][:max_results]:
+
+                print(result)
                 if isinstance(result["headword"], dict):
                     lemma = result["headword"]["text"]
                     pos = self.clean_lookup_pos(result["headword"]["pos"])
-                    def_ = result["senses"][0]["definition"]
                 elif isinstance(result["headword"], list):
                     lemma = result["headword"][0]["text"]
                     pos = self.clean_lookup_pos(result["headword"][0]["pos"])
-                    def_ = result["senses"][0]["definition"]
+
+                senses = [r for r in result["senses"] if "definition" in r]
+                def_ = "; ".join(
+                    [
+                        s.get("definition")
+                        for s in senses
+                        if s.get("definition") not in ["", " "]
+                    ]
+                )
 
                 definitions.append(
                     {
