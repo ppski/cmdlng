@@ -43,16 +43,16 @@ class Word(models.Model):
 
     lookup_word = models.CharField("Lookup Word", max_length=50)
     lemma = models.CharField("Lemma", max_length=50)
-    native_alpha_lemma = models.CharField("Native Alphabet Lemma", max_length=50)
-    pos = models.CharField("Part of Speech", max_length=240, choices=POS_CHOICES)
+    native_alpha_lemma = models.CharField("Native Alphabet Lemma", max_length=100,null=True)
+    pos = models.CharField("Part of Speech", max_length=10, choices=POS_CHOICES)
     is_mwe = models.BooleanField("Is Multi-Word Expression", default=False) # Non-char field
     is_informal = models.BooleanField("Informal", default=False) # Non-char field
     
-    en_translation = models.CharField("English Translation", max_length=50, default="")
-    definition = models.JSONField("Definition") # Non-char field
+    en_translation = models.CharField("English Translation", max_length=50, null=True)
+    definition = models.JSONField("Definition", null=True) # Non-char field
     source = models.URLField("Definition Source") # Non-char field
-    examples = models.JSONField("Examples") # Non-char field
-    pos_forms = models.JSONField("Part of Speech Forms") # Non-char field
+    examples = models.JSONField("Examples", null=True) # Non-char field
+    pos_forms = models.JSONField("Part of Speech Forms", null=True) # Non-char field
     
 
     
