@@ -1,24 +1,36 @@
-
 from pathlib import Path
+from decouple import config
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+####################
+# Lang-related     #
+####################
+LEXICALA_API_KEY = config("LEXICALA_API_KEY")
+
+LANG_SOURCE = "fr_fr"
+LANG_TARGET = "en_us"
+
+
+####################
+# Django settings  #
+####################
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-DJANGO_SETTINGS_MODULE= 'backend.settings'
-
-# TODO: Change this to a secret key
-SECRET_KEY = "django-insecure-*m6ez7vpooni8n1ba*4uih$r$w1^q=x)od(@g0zhnw(dx40sm6"
-
-# SECURITY WARNING: don't run with debug turned on in production!
+DJANGO_SETTINGS_MODULE = "backend.settings"
 DEBUG = True
-
 ALLOWED_HOSTS = []
+CORS_ORIGIN_ALLOW_ALL = True  # Only for local use
+STATIC_URL = "static/"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Only for local use
-CORS_ORIGIN_ALLOW_ALL = True
 
-# Application definition
+# Internationalization
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "Europe/Paris"
+USE_I18N = True
+USE_TZ = True
+DATE_INPUT_FORMATS = ["%Y-%m-%dT%H:%M:%S"]
+
+
 INSTALLED_APPS = [
     "corsheaders",
     "django.contrib.admin",
@@ -28,7 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.staticfiles",
     "rest_framework",
-    "words"
+    "words",
 ]
 
 MIDDLEWARE = [
@@ -62,10 +74,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -75,8 +83,6 @@ DATABASES = {
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -91,25 +97,3 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Europe/Paris"
-USE_I18N = True
-USE_TZ = True
-
-DATE_INPUT_FORMATS = ['%Y-%m-%dT%H:%M:%S']
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = "static/"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
