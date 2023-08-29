@@ -1,4 +1,3 @@
-import json
 import re
 import requests
 from typing import Union
@@ -105,7 +104,7 @@ class WordLookUp:
         ).first()
         return f"Added {self.lemma}: {new_entry}"
 
-    def clean_lookup_pos(self, lookup_pos: str) -> str:
+    def clean_lookup_pos(self, lookup_pos: str) -> Union[str, None]:
         if not lookup_pos:
             return None
         pos_dict = {
@@ -126,15 +125,20 @@ class WordLookUp:
         }
 
         if lookup_pos.upper() in list(pos_dict.keys()):
+            print("1")
             return lookup_pos.upper()
 
+        print("2")
         for pos in pos_dict:
+            print("3")
             if lookup_pos in pos_dict[pos]:
+                print(pos)
                 return pos
         # If no match
+        print(pos)
         return "X"
 
-    def get_search_pref(self) -> Union[dict, None]:
+    def get_search_pref(self) -> Union[list, None]:
         preferred_results = None
 
         if self.lang_pair == "fr_fr-fr_fr":
@@ -148,13 +152,16 @@ class WordLookUp:
         return preferred_results
 
     ##############################
-    ### WORDREFERENCE API      ###
+    # WORDREFERENCE API          #
     ##############################
     def look_up_wordreference(self) -> list:
         url = f"https://www.wordreference.com/{self.lang_prefix}en/"
         link = f"{url}{self.lemma}"
 
         response = requests.get(link)
+        if response.status_code != 200:
+            return None
+
         soup = BeautifulSoup(response.content, "html.parser")
 
         # Entries
@@ -173,7 +180,7 @@ class WordLookUp:
             if related_lemma:
                 related_lemma = related_lemma.text.strip()
                 related_lemma = re.sub(
-                    r"(\s+(n|nm|nf|v|vtr|vi|a|adv|adj|expr|agg|invar|\+),?)+$",
+                    r"(\s+(a|adj|adv|agg|avv|expr|invar|loc|n|nf|nm|pron|v|vi|vtr|\+),?)+$",
                     "",
                     related_lemma,
                 ).strip()
@@ -184,7 +191,7 @@ class WordLookUp:
                 trans_en = trans_en.text.strip()
                 trans_en = trans_en.split("⇒")[0].strip()
                 trans_en = re.sub(
-                    r"(\s+(n|nm|nf|v|vtr|vi|a|adv|adj|expr|agg|invar|\+),?)+$",
+                    r"(\s+(a|adj|adv|agg|avv|expr|invar|loc|n|nf|nm|pron|v|vi|vtr|\+),?)+$",
                     "",
                     trans_en,
                 )
@@ -217,6 +224,9 @@ class WordLookUp:
                 if en and en.text.strip() != "":
                     examples.append({"en": en.text.strip()})
 
+            if not related_lemma and not pos_source and not examples and not trans_en:
+                continue  # ignore if empty
+
             match = None
             for d in definitions:
                 if d["en_translation"] == trans_en:
@@ -235,7 +245,7 @@ class WordLookUp:
         return definitions
 
     ##############################
-    ### LEXICALA API           ###
+    #  LEXICALA API              #
     ##############################
     def look_up_lexicala(self) -> Union[list, None]:
         response = requests.get(
@@ -246,8 +256,10 @@ class WordLookUp:
             },
             params={"text": self.lookup_word, "language": self.lang_prefix},
         )
+        if response.status_code != 200:
+            return None
 
-        if int(response.json()["n_results"]) == 0:
+        elif int(response.json()["n_results"]) == 0:
             return None
         else:
             max_results = (
@@ -259,13 +271,11 @@ class WordLookUp:
             if not response.json()["results"]:
                 return None
             for result in response.json()["results"][:max_results]:
-
-                print(result)
                 if isinstance(result["headword"], dict):
-                    lemma = result["headword"]["text"]
+                    related_lemma = result["headword"]["text"]
                     pos = self.clean_lookup_pos(result["headword"]["pos"])
                 elif isinstance(result["headword"], list):
-                    lemma = result["headword"][0]["text"]
+                    related_lemma = result["headword"][0]["text"]
                     pos = self.clean_lookup_pos(result["headword"][0]["pos"])
 
                 senses = [r for r in result["senses"] if "definition" in r]
@@ -276,10 +286,12 @@ class WordLookUp:
                         if s.get("definition") not in ["", " "]
                     ]
                 )
+                if not def_ and not pos and not related_lemma:
+                    continue  # ignore if empty
 
                 definitions.append(
                     {
-                        # "lemma": lemma,
+                        "related_lemma": related_lemma,
                         "pos": pos,
                         "definition": def_,
                         "source": "http://lexicala.com/",
