@@ -1,4 +1,6 @@
 from django.core.management.base import BaseCommand
+from django.conf import settings
+
 from ...models import Word
 from ...lookup import WordLookUp, WordSearch
 
@@ -12,21 +14,24 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # FIXME: Hardcoded for now
-        LANG_SOURCE = "fr_fr"
-        LANG_TARGET = "fr_fr"
-
+        # Languages
         if options["source_lang"]:
             if isinstance(options["source_lang"], list):
                 LANG_SOURCE = options["source_lang"][0]
             elif isinstance(options["source_lang"], str):
                 LANG_SOURCE = options["source_lang"]
+        else:
+            LANG_SOURCE = settings.LANG_SOURCE
+
         if options["target_lang"]:
             if isinstance(options["target_lang"], list):
                 LANG_TARGET = options["target_lang"][0]
             elif isinstance(options["target_lang"], str):
                 LANG_TARGET = options["target_lang"]
+        else:
+            LANG_TARGET = settings.LANG_TARGET
 
+        # Add word
         if options["add"]:
             lookup_word_str = options["add"][0].lower()
             search = WordSearch(
@@ -34,11 +39,7 @@ class Command(BaseCommand):
                 lang_source=LANG_SOURCE,
                 lang_target=LANG_TARGET,
             )
-            db_search_result = search.search(
-                lookup_word=lookup_word_str,
-                lang_source=LANG_SOURCE,
-                lang_target=LANG_TARGET,
-            )
+            db_search_result = search.search(lookup_word=lookup_word_str)
 
             if db_search_result:
                 print("The word is already in the db: ", db_search_result)
