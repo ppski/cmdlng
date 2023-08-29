@@ -149,9 +149,9 @@ class WordLookUp:
             return self.look_up_wordreference()
         return preferred_results
 
-    # ------------------------------------------------------------#
+    # ------------------------------------------------------------ #
     # WORDREFERENCE API
-    # ------------------------------------------------------------#
+    # ------------------------------------------------------------ #
     def look_up_wordreference(self) -> Union[list, None]:
         url = f"https://www.wordreference.com/{self.lang_prefix}en/"
         link = f"{url}{self.lemma}"
@@ -242,9 +242,9 @@ class WordLookUp:
                 )
         return definitions
 
-    # ------------------------------------------------------------#
+    # ------------------------------------------------------------ #
     #  LEXICALA API
-    # ------------------------------------------------------------#
+    # ------------------------------------------------------------ #
     def look_up_lexicala(self) -> Union[list, None]:
         response = requests.get(
             "https://lexicala1.p.rapidapi.com/search",
@@ -298,9 +298,9 @@ class WordLookUp:
 
             return definitions
 
-    # ------------------------------------------------------------#
+    # ------------------------------------------------------------ #
     # OPENAI LLM API
-    # ------------------------------------------------------------#
+    # ------------------------------------------------------------ #
     def look_up_openai(self) -> Union[list, None]:
         import openai
 

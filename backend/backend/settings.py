@@ -2,9 +2,9 @@ from pathlib import Path
 from decouple import config
 
 
-####################
-# Lang-related     #
-####################
+# ------------------------------------------------------------ #
+# Lang-related
+# ------------------------------------------------------------ #
 LEXICALA_API_KEY = config("LEXICALA_API_KEY")
 
 DEFAULT_LLM = "chatgpt"
@@ -16,9 +16,9 @@ LANG_SOURCE = "fr_fr"
 LANG_TARGET = "en_us"
 
 
-####################
-# Django settings  #
-####################
+# ------------------------------------------------------------ #
+# Django settings
+# ------------------------------------------------------------ #
 BASE_DIR = Path(__file__).resolve().parent.parent
 DJANGO_SETTINGS_MODULE = "backend.settings"
 DEBUG = True
