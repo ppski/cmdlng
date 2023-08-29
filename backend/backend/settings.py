@@ -7,6 +7,11 @@ from decouple import config
 ####################
 LEXICALA_API_KEY = config("LEXICALA_API_KEY")
 
+DEFAULT_LLM = "chatgpt"
+OPENAI_API_KEY = config("OPENAI_API_KEY")
+OPENAI_MODEL = "gpt-3.5-turbo"
+
+
 LANG_SOURCE = "fr_fr"
 LANG_TARGET = "en_us"
 

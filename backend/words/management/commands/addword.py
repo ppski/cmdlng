@@ -1,20 +1,25 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from ...models import Word
 from ...lookup import WordLookUp, WordSearch
 
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("-a", "--add", nargs=1, type=str, help="Add a new word")
-        parser.add_argument("-sl", "--source_lang", type=str, help="Lang of input word")
         parser.add_argument(
-            "-tl", "--target_lang", type=str, help="Lang of target word (translation)"
+            "-sl", "--source_lang", type=str, help="Lang of input word."
+        )
+        parser.add_argument(
+            "-tl", "--target_lang", type=str, help="Lang of target word (translation)."
+        )
+        parser.add_argument(
+            "-llm", "--llm", nargs="?", const="default", help="Use an LLM."
         )
 
     def handle(self, *args, **options):
         # Languages
+
         if options["source_lang"]:
             if isinstance(options["source_lang"], list):
                 LANG_SOURCE = options["source_lang"][0]
@@ -30,6 +35,14 @@ class Command(BaseCommand):
                 LANG_TARGET = options["target_lang"]
         else:
             LANG_TARGET = settings.LANG_TARGET
+
+        # LLM preference
+        if options["llm"] is None:
+            LLM = False
+        elif options["llm"] == "default":
+            LLM = settings.DEFAULT_LLM
+        else:
+            LLM = options["llm"]
 
         # Add word
         if options["add"]:
@@ -51,6 +64,7 @@ class Command(BaseCommand):
                     lemma=search.lemma,
                     lang_source=LANG_SOURCE,
                     lang_target=LANG_TARGET,
+                    llm=LLM,
                 )
                 text = lookup.look_up()
 

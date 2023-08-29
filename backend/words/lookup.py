@@ -1,11 +1,13 @@
+import json
 import re
 import requests
 from typing import Union
 
 import spacy
+from django.conf import settings
 from bs4 import BeautifulSoup
 
-from django.conf import settings
+
 from .models import Word
 
 
@@ -36,9 +38,6 @@ class WordSearch:
 
     def search(self, lookup_word: str) -> Union[Word, None]:
         # Search for a word in the db
-
-        # TODO: logic for MWEs
-        # Look for word in db
         search_lookup_result = Word.objects.filter(
             lemma=lookup_word, lang_source=self.lang_source
         )
@@ -65,6 +64,7 @@ class WordLookUp:
         lemma: str,
         lang_source: str = "fr_fr",
         lang_target: str = "fr_fr",
+        llm: Union[bool, str] = False,
     ):
         self.lookup_word = lookup_word
         self.lang_source = lang_source
@@ -72,6 +72,7 @@ class WordLookUp:
         self.lang_target = lang_target
         self.lang_pair = f"{lang_source}-{lang_target}"
         self.lemma = lemma
+        self.llm = llm
 
     def look_up(self) -> Union[str, None]:
         results = self.get_search_pref()
@@ -125,23 +126,20 @@ class WordLookUp:
         }
 
         if lookup_pos.upper() in list(pos_dict.keys()):
-            print("1")
             return lookup_pos.upper()
 
-        print("2")
         for pos in pos_dict:
-            print("3")
             if lookup_pos in pos_dict[pos]:
-                print(pos)
                 return pos
         # If no match
-        print(pos)
         return "X"
 
     def get_search_pref(self) -> Union[list, None]:
         preferred_results = None
 
-        if self.lang_pair == "fr_fr-fr_fr":
+        if self.llm and self.llm == "chatgpt":
+            preferred_results = self.look_up_openai()
+        elif self.lang_pair == "fr_fr-fr_fr":
             preferred_results = self.look_up_lexicala()
         elif self.lang_pair == "fr_fr-en_us":
             preferred_results = self.look_up_lexicala()
@@ -151,10 +149,10 @@ class WordLookUp:
             return self.look_up_wordreference()
         return preferred_results
 
-    ##############################
-    # WORDREFERENCE API          #
-    ##############################
-    def look_up_wordreference(self) -> list:
+    # ------------------------------------------------------------#
+    # WORDREFERENCE API
+    # ------------------------------------------------------------#
+    def look_up_wordreference(self) -> Union[list, None]:
         url = f"https://www.wordreference.com/{self.lang_prefix}en/"
         link = f"{url}{self.lemma}"
 
@@ -244,9 +242,9 @@ class WordLookUp:
                 )
         return definitions
 
-    ##############################
-    #  LEXICALA API              #
-    ##############################
+    # ------------------------------------------------------------#
+    #  LEXICALA API
+    # ------------------------------------------------------------#
     def look_up_lexicala(self) -> Union[list, None]:
         response = requests.get(
             "https://lexicala1.p.rapidapi.com/search",
@@ -299,3 +297,125 @@ class WordLookUp:
                 )
 
             return definitions
+
+    # ------------------------------------------------------------#
+    # OPENAI LLM API
+    # ------------------------------------------------------------#
+    def look_up_openai(self) -> Union[list, None]:
+        import openai
+
+        def get_word_info(
+            definition: str,
+            en_translation: str,
+            examples: list,
+            is_informal: bool,
+            is_mwe: bool,
+            lemma: str,
+            pos: str,
+            source: str,
+        ):
+            """Get word info."""
+            word_info = {
+                "pos": pos,
+                "en_translation": en_translation,
+                "is_informal": is_informal,
+                "lemma": lemma,
+                "definition": definition,
+                "examples": examples,
+                "is_mwe": is_mwe,
+                "source": source,
+            }
+
+            return json.dumps(word_info)
+
+        function_descriptions = [
+            {
+                "name": "get_word_info",
+                "description": "Get word info.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "definition": {
+                            "type": "string",
+                            "description": "Definition of the word.",
+                        },
+                        "en_translation": {
+                            "type": "string",
+                            "description": "The translation into English.",
+                        },
+                        "examples": {
+                            "type": "array",
+                            "description": "Examples of the word in use.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "lang": {"type": "string"},
+                                    "example": {"type": "string"},
+                                },
+                            },
+                        },
+                        "is_informal": {
+                            "type": "boolean",
+                            "description": "Whether or not the word is informal.",
+                        },
+                        "is_mwe": {
+                            "type": "boolean",
+                            "description": "Whether or not the word is a multi-word expression.",
+                        },
+                        "lemma": {
+                            "type": "string",
+                            "description": "Lemma",
+                        },
+                        "pos": {
+                            "type": "string",
+                            "description": "The part of speech.",
+                        },
+                        "source": {
+                            "type": "string",
+                            "description": "The URL source of the definition.",
+                        },
+                    },
+                    "required": [
+                        "definition",
+                        "en_translation",
+                        "examples",
+                        "is_informal",
+                        "is_mwe",
+                        "lemma",
+                        "pos",
+                        "source",
+                    ],
+                },
+            }
+        ]
+
+        user_prompt = f"""
+        Lang source: {self.lang_source}
+        Target language: {self.lang_target}
+        Define the word {self.lookup_word} in {self.lang_target}.
+        """
+
+        openai.api_key = settings.OPENAI_API_KEY
+        try:
+            completion = openai.ChatCompletion.create(
+                model=settings.OPENAI_MODEL,
+                temperature=0.0,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a multi-lingual dictionary.",
+                    },
+                    {"role": "user", "content": user_prompt},
+                ],
+                # Add function calling
+                functions=function_descriptions,
+                function_call="auto",
+            )
+        except openai.error.APIError as e:
+            print(f"OpenAI error: {e}")
+            return None
+
+        output = completion.choices[0].message
+        params = json.loads(output.function_call.arguments)
+
+        return [params]
