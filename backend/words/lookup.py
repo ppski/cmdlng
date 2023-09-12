@@ -36,12 +36,18 @@ class WordSearch:
         doc = nlp(self.lookup_word)
         return doc[0].lemma_  # FIXME: MWEs
 
-    def search(self, lookup_word: str) -> Union[Word, None]:
+    def search(self) -> Union[Word, None]:
         # Search for a word in the db
-        search_lookup_result = Word.objects.filter(
-            lemma=lookup_word, lang_source=self.lang_source
+        search_lookup_as_lemma_result = Word.objects.filter(
+            lemma=self.lookup_word, lang_source=self.lang_source
         )
 
+        if search_lookup_as_lemma_result:
+            return search_lookup_as_lemma_result
+
+        search_lookup_result = Word.objects.filter(
+            lookup_word=self.lookup_word, lang_source=self.lang_source
+        )
         if search_lookup_result:
             return search_lookup_result
 

@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
-
+from rich.console import Console
 from ...lookup import WordLookUp, WordSearch
+from ...display import WordDisplay
 
 
 class Command(BaseCommand):
@@ -16,10 +17,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "-llm", "--llm", nargs="?", const="default", help="Use an LLM."
         )
+        parser.add_argument(
+            "-vw", "--view_word", nargs="?", type=str, help="View a word."
+        )
 
     def handle(self, *args, **options):
-        # Languages
-
+        # Source lang
         if options["source_lang"]:
             if isinstance(options["source_lang"], list):
                 LANG_SOURCE = options["source_lang"][0]
@@ -28,6 +31,7 @@ class Command(BaseCommand):
         else:
             LANG_SOURCE = settings.LANG_SOURCE
 
+        # Target lang
         if options["target_lang"]:
             if isinstance(options["target_lang"], list):
                 LANG_TARGET = options["target_lang"][0]
@@ -57,7 +61,6 @@ class Command(BaseCommand):
             if db_search_result:
                 print("The word is already in the db: ", db_search_result)
             else:
-
                 print(f"Searching for {lookup_word_str}...")
                 lookup = WordLookUp(
                     lookup_word=lookup_word_str,
@@ -72,3 +75,15 @@ class Command(BaseCommand):
                     print("No results found.")
                 else:
                     print(text)
+
+        elif options["view_word"]:
+            lookup_word_str = options["view_word"].lower()
+            search = WordSearch(lookup_word_str, LANG_SOURCE, LANG_TARGET)
+            search_result = search.search()
+
+            if search_result:
+                display = WordDisplay(search_result)
+                display.display()
+            else:
+                console = Console()
+                console.print("No results.", style="bold red")
