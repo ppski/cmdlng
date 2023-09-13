@@ -16,15 +16,26 @@ class WordDisplay:
         table.add_column("examples", justify="left", style="green")
         table.add_column("source", justify="left", style="green")
         for i in self.search_results:
-            example_list = [f"{x['lang']}: {x['example']}" for x in i.examples]
-            examples = " | ".join(example_list)
+            examples = ""
+            try:
+                if i.examples:
+                    example_list = [f"{x['lang']}: {x['example']}" for x in i.examples]
+                    examples = " | ".join(example_list)
+            except KeyError:
+                examples = ""
+
+            source = (
+                i.source.replace("www.", "")
+                .replace("http://", "")
+                .replace("https://", "")
+            )
             table.add_row(
                 i.lookup_word,
                 i.lemma,
                 i.en_translation,
                 i.definition,
                 examples,
-                i.source[12:],
+                source,
             )
 
         console = Console()

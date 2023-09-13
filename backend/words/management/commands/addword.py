@@ -56,7 +56,7 @@ class Command(BaseCommand):
                 lang_source=LANG_SOURCE,
                 lang_target=LANG_TARGET,
             )
-            db_search_result = search.search(lookup_word=lookup_word_str)
+            db_search_result = search.search()
 
             if db_search_result:
                 print("The word is already in the db: ", db_search_result)
