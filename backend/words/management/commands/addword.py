@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from rich.console import Console
 from ...lookup import WordLookUp, WordSearch
-from ...display import WordDisplay
+from ...cmd_display import WordDisplay
 
 
 class Command(BaseCommand):
@@ -60,6 +60,8 @@ class Command(BaseCommand):
 
             if db_search_result:
                 print("The word is already in the db: ", db_search_result)
+                display = WordDisplay(db_search_result)
+                display.display()
             else:
                 print(f"Searching for {lookup_word_str}...")
                 lookup = WordLookUp(
