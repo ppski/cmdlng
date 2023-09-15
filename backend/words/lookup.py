@@ -8,7 +8,7 @@ from .cmd_display import WordDisplay
 from .look_up_sources._diclookup import DictionaryLookUp
 from .look_up_sources.lexicala import Lexicala
 from .look_up_sources.wordreference import WordReference
-from .look_up_sources.openai import OpenAI
+from .look_up_sources.llm_openai import OpenAI
 
 
 # Look for word in db

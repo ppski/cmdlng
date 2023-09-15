@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from decouple import config
 
@@ -7,10 +8,12 @@ from decouple import config
 # ------------------------------------------------------------ #
 LEXICALA_API_KEY = config("LEXICALA_API_KEY")
 
+LLM_OPTIONS = ["chatgpt"]
+
+
 DEFAULT_LLM = "chatgpt"
 OPENAI_API_KEY = config("OPENAI_API_KEY")
 OPENAI_MODEL = "gpt-3.5-turbo"
-
 
 LANG_SOURCE = "fr_fr"
 LANG_TARGET = "en_us"
@@ -19,21 +22,22 @@ LANG_TARGET = "en_us"
 # ------------------------------------------------------------ #
 # Django settings
 # ------------------------------------------------------------ #
-BASE_DIR = Path(__file__).resolve().parent.parent
-DJANGO_SETTINGS_MODULE = "backend.settings"
-DEBUG = True
 ALLOWED_HOSTS = []
+BASE_DIR = Path(__file__).resolve().parent.parent
 CORS_ORIGIN_ALLOW_ALL = True  # Only for local use
-STATIC_URL = "static/"
+DEBUG = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
+DJANGO_SETTINGS_MODULE = "backend.settings"
+SECRET_KEY = "*"
+STATIC_URL = "static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 # Internationalization
+DATE_INPUT_FORMATS = ["%Y-%m-%dT%H:%M:%S"]
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Paris"
 USE_I18N = True
 USE_TZ = True
-DATE_INPUT_FORMATS = ["%Y-%m-%dT%H:%M:%S"]
 
 
 INSTALLED_APPS = [
@@ -64,7 +68,7 @@ ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
