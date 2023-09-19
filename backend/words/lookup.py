@@ -9,6 +9,7 @@ from .look_up_sources._diclookup import DictionaryLookUp
 from .look_up_sources.lexicala import Lexicala
 from .look_up_sources.wordreference import WordReference
 from .look_up_sources.llm_openai import OpenAI
+from .look_up_sources.llm_langchain import LangChain
 
 
 # Look for word in db
@@ -105,19 +106,23 @@ class WordLookUp:
             }
             new_word = Word(**empty_dict)
             new_word.save()
-
         new_entry = Word.objects.filter(
             lemma=self.lemma, lang_source=self.lang_source
         ).first()
-        print(f"Added {self.lemma}: {new_entry}")
-
-        display = WordDisplay(new_entry)
-        return display.display()
+        return new_entry
 
     def get_search_pref(self) -> Union[list, None]:
         preferred_results = None
         if self.llm and self.llm == "chatgpt":
             preferred_results = OpenAI.look_up(
+                self.lookup_word,
+                self.lemma,
+                self.lang_prefix,
+                self.lang_source,
+                self.lang_target,
+            )
+        elif self.llm and self.llm == "llama":
+            preferred_results = LangChain.look_up(
                 self.lookup_word,
                 self.lemma,
                 self.lang_prefix,
@@ -149,11 +154,13 @@ class WordLookUp:
                 self.lang_target,
             )
         if not preferred_results:
-            return WordReference.look_up(
+            default_results = WordReference.look_up(
                 self.lookup_word,
                 self.lemma,
                 self.lang_prefix,
                 self.lang_source,
                 self.lang_target,
             )
+            return default_results
+
         return preferred_results

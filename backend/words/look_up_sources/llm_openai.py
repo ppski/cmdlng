@@ -29,7 +29,6 @@ class OpenAI(DictionaryLookUp):
             "is_mwe": is_mwe,
             "source": source,
         }
-
         return json.dumps(word_info)
 
     @staticmethod
@@ -129,5 +128,5 @@ class OpenAI(DictionaryLookUp):
 
         output = completion.choices[0].message
         params = json.loads(output.function_call.arguments)
-
+        params["llm"] = settings.OPENAI_MODEL
         return [params]

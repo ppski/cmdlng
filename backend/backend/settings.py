@@ -7,17 +7,20 @@ from decouple import config
 # Lang-related
 # ------------------------------------------------------------ #
 LEXICALA_API_KEY = config("LEXICALA_API_KEY")
-
-LLM_OPTIONS = ["chatgpt"]
-
-
-DEFAULT_LLM = "chatgpt"
-OPENAI_API_KEY = config("OPENAI_API_KEY")
-OPENAI_MODEL = "gpt-3.5-turbo"
-
 LANG_SOURCE = "fr_fr"
 LANG_TARGET = "en_us"
 
+# ------------------------------------------------------------ #
+# LLM-related
+# ------------------------------------------------------------ #
+LLM_OPTIONS = ["chatgpt", "llama"]
+
+# Define the below in env
+DEFAULT_LLM = config("DEFAULT_LLM")
+OPENAI_API_KEY = config("OPENAI_API_KEY")
+OPENAI_MODEL = config("OPENAI_MODEL")
+LOCAL_LLAMA_MODEL = config("LOCAL_LLAMA_MODEL")
+DEFAULT_LOCAL_LLM = config("DEFAULT_LOCAL_LLM")
 
 # ------------------------------------------------------------ #
 # Django settings

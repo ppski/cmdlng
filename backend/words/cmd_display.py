@@ -11,19 +11,19 @@ class WordDisplay:
             self.search_results = [search_results]
 
     def display(self):
-        if isinstance(self.search_results, QuerySet):
-            table = Table(
-                title=f"Results for look up: {self.search_results[0].lookup_word}"
-            )
-        else:
-            table = Table(
-                title=f"Results for look up: {self.search_results.lookup_word}"
-            )
+        if self.search_results == [None]:
+            console = Console()
+            return console.print("No results found.")
 
+        table = Table(
+            title=f"Results for look up: {self.search_results[0].lookup_word}"
+        )
+
+        table.add_column("looked up word", style="magenta")
         table.add_column("lemma", style="magenta")
         table.add_column("en", justify="left", style="green")
         table.add_column("definition", justify="left", style="cyan")
-        table.add_column("examples", justify="left", style="green")
+        table.add_column("examples", justify="left")
         for i in self.search_results:
             try:
                 examples = ""
@@ -33,7 +33,9 @@ class WordDisplay:
             except KeyError:
                 examples = ""
 
-            table.add_row(i.lemma, i.en_translation, i.definition, examples)
+            table.add_row(
+                i.lookup_word, i.lemma, i.en_translation, i.definition, examples
+            )
 
         console = Console()
         return console.print(table, justify="center")

@@ -14,9 +14,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "-tl", "--target_lang", type=str, help="Lang of target word (translation)."
         )
-        parser.add_argument(
-            "-llm", "--llm", nargs="?", const="default", help="Use an LLM."
-        )
+        parser.add_argument("-llm", "--llm", help="Use an LLM.")
         parser.add_argument(
             "-vw", "--view_word", nargs="?", type=str, help="View a word."
         )
@@ -43,7 +41,7 @@ class Command(BaseCommand):
         # LLM preference
         if options["llm"] is None:
             LLM = False
-        elif options["llm"] == "default":
+        elif options["llm"] == "chatgpt":
             LLM = settings.DEFAULT_LLM
         else:
             LLM = options["llm"]
@@ -71,12 +69,14 @@ class Command(BaseCommand):
                     lang_target=LANG_TARGET,
                     llm=LLM,
                 )
-                text = lookup.look_up()
+                new_entry = lookup.look_up()
 
-                if not text:
-                    print("No results found.")
+                if not new_entry:
+                    print(f"No results found.")
                 else:
-                    print(text)
+                    print(f"Added {new_entry}")
+                    display = WordDisplay(new_entry)
+                    display.display()
 
         elif options["view_word"]:
             lookup_word_str = options["view_word"].lower()
